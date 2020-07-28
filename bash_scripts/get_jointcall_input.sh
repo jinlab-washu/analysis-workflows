@@ -10,7 +10,7 @@ outfile=/gscmnt/gc2698/jin810/jointcalling/"$analysis_ID"/gvcfs_hg38.list
 model_ids=$(genome model list --show=id --filter "analysis_project.id=$analysis_ID")
 DIR=/gscmnt/gc2698/jin810/model_data
 logs_dir="$outDIR"/logs
-config_template=/gscmnt/gc2698/jin810/cromwell/cromwell_lsf_config_template.conf
+config_template=/gscmnt/gc2698/jin810/analysis-workflows/cromwell_wdl/cromwell_lsf_config_template.conf
 config_file="$outDIR"/cromwell.conf
 json=/gscmnt/gc2698/jin810/analysis-workflows/cromwell_wdl/jointgt_GATK4_exome_hg38_inputs.json
 jt_runs="$outDIR"/jt_runs.txt
@@ -46,22 +46,26 @@ sed -i "s+/gscmnt/gc2764/cad/jgarza/logs/cromwell-workflow-logs+$logs_dir/cromwe
 
 #List previous joint genotyping runs into a file
 #WORK IN PROGRESS
-#if [-d "$callsDIR"]
-#then
-    #if [-f "$jt_runs"]
-    #then
-        #echo "Previous joint genotyping run txt found!"
-        #rm "$jt_runs"
-    #else
-        #echo "No previous jt_runs.txt found!"
-#ls "$outDIR"/cromwell-executions > "$jt_runs"
+if [ -d "$callsDIR" ]
+then
+    if [ -f "$jt_runs" ]
+    then
+        echo "Deleting previous jt_runs.txt!"
+        rm "$jt_runs"
+    else
+        echo "No previous jt_runs.txt found!"
+    fi
+    ls "$outDIR"/cromwell-executions > "$jt_runs"
+else
+    touch "$jt_runs"  
+fi
 
-# Copy cromwell json file and modify to incorporate output path
+#Copy cromwell json file and modify to incorporate output path
 #WORK IN PROGRESS
-#echo Current Joint Genotyping
-#cp "$json" "$outDIR/"
-#sed -i "4 i $outDIR" "$outDIR"/jointgt_GATK4_exome_hg38_inputs.json
-#sed -i "4 i $jt_runs" "$outDIR"/jointgt_GATK4_exome_hg38_inputs.json
+echo Current Joint Genotyping
+cp "$json" "$outDIR/"
+sed -i "5 i \ \ \"JointGenotyping.outdir\": \"$callsDIR\"", "$outDIR"/jointgt_GATK4_exome_hg38_inputs.json
+sed -i "5 i \ \ \"JointGenotyping.runs\": \"$jt_runs\"", "$outDIR"/jointgt_GATK4_exome_hg38_inputs.json
 
 for i in $model_ids
 do
