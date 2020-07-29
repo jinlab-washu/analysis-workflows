@@ -45,7 +45,6 @@ sed -i "s+/gscmnt/gc2764/cad/jgarza/tmp/cromwell-executions+$outDIR/cromwell-exe
 sed -i "s+/gscmnt/gc2764/cad/jgarza/logs/cromwell-workflow-logs+$logs_dir/cromwell-workflow-logs+g" "$config_file" #workflow logs directory
 
 #List previous joint genotyping runs into a file
-#WORK IN PROGRESS
 if [ -d "$callsDIR" ]
 then
     if [ -f "$jt_runs" ]
@@ -61,8 +60,7 @@ else
 fi
 
 #Copy cromwell json file and modify to incorporate output path
-#WORK IN PROGRESS
-echo Current Joint Genotyping
+echo Updating inputs .json file
 cp "$json" "$outDIR/"
 sed -i "5 i \ \ \"JointGenotyping.outdir\": \"$callsDIR\"", "$outDIR"/jointgt_GATK4_exome_hg38_inputs.json
 sed -i "5 i \ \ \"JointGenotyping.runs\": \"$jt_runs\"", "$outDIR"/jointgt_GATK4_exome_hg38_inputs.json
