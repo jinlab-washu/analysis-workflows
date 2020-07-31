@@ -414,13 +414,14 @@ task getOutputDir {
                        if p in test_list:
                            test_list.remove(p)
           if len(test_list) == 1:
-              return os.path.join(runsdir,test_list[0])
+              return str(os.path.join(runsdir,test_list[0]))
           else:
               return None
       
       if os.path.exists("${runsdir}") == True:
           outdir = find_run_id("${runs}","${runsdir}")
-          print(outdir)
+          with open("run_id.txt", "w") as r:
+              r.write(outdir)
 
       CODE
   }
@@ -429,7 +430,7 @@ task getOutputDir {
     requested_memory: 4000
   }
   output {
-    String outdir = read_string(stdout())
+    String outdir = read_string("run_id.txt")
   }
 }
 
