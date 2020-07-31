@@ -4,8 +4,8 @@
 
 #Input
 analysis_ID=$1
-main=/gscmnt/gc2698/jin810/cromwell/lek_joint_genotyping_jinlab_mod.wdl
-json=/gscmnt/gc2698/jin810/cromwell/jointgt_GATK4_exome_hg38_inputs.json
+main=/gscmnt/gc2698/jin810/analysis-workflows/cromwell_wdl/lek_joint_genotyping_jinlab_mod.wdl
+json=/gscmnt/gc2698/jin810/jointcalling/"$analysis_ID"/jointgt_GATK4_exome_hg38_inputs.json
 options=/gscmnt/gc2698/jin810/jointcalling/"$analysis_ID"/cromwell.options
 
 #Main Script
