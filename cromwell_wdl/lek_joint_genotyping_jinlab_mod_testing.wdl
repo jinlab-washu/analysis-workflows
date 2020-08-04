@@ -315,7 +315,21 @@ workflow JointGenotyping {
         output_prefix = callset_name
     }
   }
-
+  call kinship { 
+    input:
+      kin_vcf = FinalGatherVcf.output_vcf
+      kin_vcf_ind = FinalGatherVcf.output_vcf_index
+  }
+  call relatedness {
+    input:
+      kin_vcf = FinalGatherVcf.output_vcf
+      kin_vcf_ind = FinalGatherVcf.output_vcf_index
+  }
+  call sex_check {
+    input:
+      kin_vcf = FinalGatherVcf.output_vcf
+      kin_vcf_ind = FinalGatherVcf.output_vcf_index
+  }
   output {
     # outputs exome metrics summary file for bamMetrics results from each sample
     exomeMetrics.exome_metrics
@@ -898,5 +912,23 @@ task DynamicallyCombineIntervals {
 
   output {
     File output_intervals = "out.intervals"
+  }
+}
+
+task kinship {
+  File in_vcf
+  File in_vcf_ind
+
+  command {
+    plink --vcf ${kin_vcf} --geno 0.01 --hwe 0.001 --maf 0.05 --genome --snps-only
+  }
+  
+  runtime {
+    docker: "sam16711/plink:latest@sha256:b523dd3eb676e380d38668c3c6639ed539b4374adffcf8dfa80d543fd242f7c5"
+    cpus: 4
+    requested_memory: 15000
+  }
+  output {
+    File kinship = "*.genome"
   }
 }
