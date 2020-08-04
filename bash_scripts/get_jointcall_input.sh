@@ -54,15 +54,17 @@ then
     else
         echo "No previous jt_runs.txt found!"
     fi
-    ls "$outDIR"/cromwell-executions > "$jt_runs"
+    ls "$outDIR"/cromwell-executions/JointGenotyping > "$jt_runs"
 else
+    rm "$jt_runs"
     touch "$jt_runs"  
 fi
 
 #Copy cromwell json file and modify to incorporate output path
 echo Updating inputs .json file
 cp "$json" "$outDIR/"
-sed -i "5 i \ \ \"JointGenotyping.outdir\": \"$callsDIR\"", "$outDIR"/jointgt_GATK4_exome_hg38_inputs.json
+sed -i "5 i \ \ \"JointGenotyping.runsdir\": \"$callsDIR\"", "$outDIR"/jointgt_GATK4_exome_hg38_inputs.json
+sed -i "5 i \ \ \"JointGenotyping.anpdir\": \"$outDIR\"", "$outDIR"/jointgt_GATK4_exome_hg38_inputs.json
 sed -i "5 i \ \ \"JointGenotyping.runs\": \"$jt_runs\"", "$outDIR"/jointgt_GATK4_exome_hg38_inputs.json
 
 for i in $model_ids

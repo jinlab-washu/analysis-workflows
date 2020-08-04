@@ -53,7 +53,9 @@ workflow JointGenotyping {
   String unpadded_intervals_file
 
   String callset_name
-  
+  String runs
+  String runsdir
+  String anpdir
   String ref_fasta
   String ref_fasta_index
   String ref_dict
@@ -84,6 +86,9 @@ workflow JointGenotyping {
 
   String DynamicallyCombineIntervals_py
   String statsmerge_v2_washu
+  
+  String import_gvcfs_dirname
+  String genotype_gvcfs_dirname
 
   # ExcessHet is a phred-scaled p-value. We want a cutoff of anything more extreme
   # than a z-score of -4.5 which is a p-value of 3.4e-06, which phred-scaled is 54.69
@@ -104,16 +109,18 @@ workflow JointGenotyping {
       samples = sample_sheet
   }
   
+  call getOutputDir {
+    input:
+      runs = runs,
+      runsdir = runsdir
+  }
+ 
   call exomeMetrics {
     input:
       statsmerge_v2_washu = statsmerge_v2_washu,
       metrics_paths = samples.results_paths
   }
-  call changePermissions {
-    input:
-      outpath=
-  
-  }
+
   Int num_gvcfs = length(read_lines(samples.input_gvcfs))
 
   call DynamicallyCombineIntervals {
@@ -308,6 +315,12 @@ workflow JointGenotyping {
         interval_list = eval_interval_list,
         ref_dict = ref_dict
     }
+
+    call changePermissions as changePermissionsSmallCallset {
+      input:
+        decoy = CollectMetricsOnFullVcf.detail_metrics_file,
+        anpdir = anpdir
+    }
   }
 
   # for large callsets we still need to gather the sharded metrics
@@ -318,6 +331,26 @@ workflow JointGenotyping {
         input_summaries_fofn = select_all(CollectMetricsSharded.summary_metrics_file),
         output_prefix = callset_name
     }
+
+    call changePermissions as changePermissionsLargeCallset {
+    input:
+      decoy = GatherMetrics.detail_metrics_file,
+      anpdir = anpdir
+    }
+  }
+
+  call removeIntermediates as removeImportGVCFs {
+    input:
+      decoy = SitesOnlyGatherVcf.output_vcf_index, 
+      parent = getOutputDir.outdir,
+      calldir = import_gvcfs_dirname
+  }
+
+  call removeIntermediates as removeGenotypeGVCFs {
+    input:
+      decoy = SitesOnlyGatherVcf.output_vcf_index,
+      parent = getOutputDir.outdir,
+      calldir = genotype_gvcfs_dirname
   }
 
   output {
@@ -362,12 +395,51 @@ task samples {
 
 }
 
-task exomeMetrics{
+task getOutputDir {
+  String runs
+  String runsdir
+  command {
+      python << CODE 
+      import os
+      
+      def find_run_id(runs,runsdir):
+          test_list = os.listdir(runsdir)
+          if len(test_list) == 1:
+              return os.path.join(runsdir,test_list[0])
+          else:
+              with open(runs, "r") as f:
+                   prev_runs = f.readlines()
+                   for p in prev_runs:
+                       p = p.strip() #remove /n
+                       if p in test_list:
+                           test_list.remove(p)
+          if len(test_list) == 1:
+              return str(os.path.join(runsdir,test_list[0]))
+          else:
+              return None
+      
+      if os.path.exists("${runsdir}") == True:
+          outdir = find_run_id("${runs}","${runsdir}")
+          with open("run_id.txt", "w") as r:
+              r.write(outdir)
+
+      CODE
+  }
+  runtime {
+    cpus: 1
+    requested_memory: 4000
+  }
+  output {
+    String outdir = read_string("run_id.txt")
+  }
+}
+
+task exomeMetrics {
   File metrics_paths
   String statsmerge_v2_washu
   command {
-      python ${statsmerge_v2_washu} \
-      ${metrics_paths} > exome_metrics.txt
+    python ${statsmerge_v2_washu} \
+    ${metrics_paths} > exome_metrics.txt
   }
   runtime {
     cpus: 2
@@ -438,7 +510,7 @@ task ImportGVCFs {
 
   >>>
   runtime {
-    docker: "broadinstitute/gatk:4.1.7.0@sha256:192fedf9b9d65809da4a2954030269e3f311d296e6b5e4c6c7deec12c7fe84b2"
+    docker: "broadinstitute/gatk:4.1.7.0"
     cpus: 4
     requested_memory: 8000
   }
@@ -478,7 +550,7 @@ task GenotypeGVCFs {
      -L ${interval}
   >>>
   runtime {
-    docker: "broadinstitute/gatk:4.1.7.0@sha256:192fedf9b9d65809da4a2954030269e3f311d296e6b5e4c6c7deec12c7fe84b2"
+    docker: "broadinstitute/gatk:4.1.7.0"
     cpus: 4
     requested_memory: 16000  
   }
@@ -514,7 +586,7 @@ task HardFilterAndMakeSitesOnlyVcf {
 
   }
   runtime {
-    docker: "broadinstitute/gatk:4.1.7.0@sha256:192fedf9b9d65809da4a2954030269e3f311d296e6b5e4c6c7deec12c7fe84b2"
+    docker: "broadinstitute/gatk:4.1.7.0"
     cpus: 4
     requested_memory: 16000  
   }
@@ -560,7 +632,7 @@ task IndelsVariantRecalibrator {
       --resource:dbsnp,known=true,training=false,truth=false,prior=2 ${dbsnp_resource_vcf}
   }
   runtime {
-    docker: "broadinstitute/gatk:4.1.7.0@sha256:192fedf9b9d65809da4a2954030269e3f311d296e6b5e4c6c7deec12c7fe84b2"
+    docker: "broadinstitute/gatk:4.1.7.0"
     cpus: 8
     requested_memory: 32000
   }
@@ -612,7 +684,7 @@ task SNPsVariantRecalibratorCreateModel {
       --resource:dbsnp,known=true,training=false,truth=false,prior=7 ${dbsnp_resource_vcf}
   }
   runtime {
-    docker: "broadinstitute/gatk:4.1.7.0@sha256:192fedf9b9d65809da4a2954030269e3f311d296e6b5e4c6c7deec12c7fe84b2"
+    docker: "broadinstitute/gatk:4.1.7.0"
     cpus: 8
     requested_memory: 104000
   }
@@ -660,7 +732,7 @@ task SNPsVariantRecalibrator {
       --resource:dbsnp,known=true,training=false,truth=false,prior=7 ${dbsnp_resource_vcf}
   }
   runtime {
-    docker: "broadinstitute/gatk:4.1.7.0@sha256:192fedf9b9d65809da4a2954030269e3f311d296e6b5e4c6c7deec12c7fe84b2"
+    docker: "broadinstitute/gatk:4.1.7.0"
     cpus: 4
     requested_memory: 8000
   }
@@ -686,7 +758,7 @@ task GatherTranches {
       --output ${output_filename}
   >>>
   runtime {
-    docker: "broadinstitute/gatk:4.1.7.0@sha256:192fedf9b9d65809da4a2954030269e3f311d296e6b5e4c6c7deec12c7fe84b2"
+    docker: "broadinstitute/gatk:4.1.7.0"
     cpus: 4
     requested_memory: 8000
   }
@@ -733,7 +805,7 @@ task ApplyRecalibration {
       -mode SNP
   }
   runtime {
-    docker: "broadinstitute/gatk:4.1.7.0@sha256:192fedf9b9d65809da4a2954030269e3f311d296e6b5e4c6c7deec12c7fe84b2"
+    docker: "broadinstitute/gatk:4.1.7.0"
     cpus: 4
     requested_memory: 8000
   }
@@ -765,7 +837,7 @@ task GatherVcfs {
     --input ${output_vcf_name}
   >>>
   runtime {
-    docker: "broadinstitute/gatk:4.1.7.0@sha256:192fedf9b9d65809da4a2954030269e3f311d296e6b5e4c6c7deec12c7fe84b2"
+    docker: "broadinstitute/gatk:4.1.7.0"
     cpus: 4
     requested_memory: 8000
   }
@@ -801,7 +873,7 @@ task CollectVariantCallingMetrics {
     File summary_metrics_file = "${metrics_filename_prefix}.variant_calling_summary_metrics"
   }
   runtime {
-    docker: "broadinstitute/gatk:4.1.7.0@sha256:192fedf9b9d65809da4a2954030269e3f311d296e6b5e4c6c7deec12c7fe84b2"
+    docker: "broadinstitute/gatk:4.1.7.0"
     cpus: 4
     requested_memory: 8000
   }
@@ -824,7 +896,7 @@ task GatherMetrics {
     --OUTPUT ${output_prefix}
   >>>
   runtime {
-    docker: "broadinstitute/gatk:4.1.7.0@sha256:192fedf9b9d65809da4a2954030269e3f311d296e6b5e4c6c7deec12c7fe84b2"
+    docker: "broadinstitute/gatk:4.1.7.0"
     cpus: 4
     requested_memory: 8000
   }
@@ -889,13 +961,13 @@ task DynamicallyCombineIntervals {
     #CODE
   #}
   command {
-      python ${dyn_combine_int} \
-      ${intervals} \
-      ${merge_count}
+    python ${dyn_combine_int} \
+    ${intervals} \
+    ${merge_count}
   }
 
   runtime {
-    docker: "broadinstitute/gatk:4.1.7.0@sha256:192fedf9b9d65809da4a2954030269e3f311d296e6b5e4c6c7deec12c7fe84b2"
+    docker: "broadinstitute/gatk:4.1.7.0"
     cpus: 4
     requested_memory: 15000
   }
@@ -903,4 +975,35 @@ task DynamicallyCombineIntervals {
   output {
     File output_intervals = "out.intervals"
   }
+}
+  
+task changePermissions {
+  String anpdir
+  File decoy
+
+  command {
+    chmod -R 774 ${anpdir}
+  }
+
+  runtime {
+    cpus: 2
+    requested_memory: 5000
+  }
+}
+
+task removeIntermediates {
+  File decoy
+  String parent
+  String calldir
+
+  command {
+    rm -rvf ${calldir}
+  }
+
+  runtime {
+    cpus: 2
+    requested_memory: 4000
+  }
+
+
 }
