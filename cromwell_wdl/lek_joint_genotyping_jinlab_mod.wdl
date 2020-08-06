@@ -997,7 +997,7 @@ task removeIntermediates {
   String calldir
 
   command {
-    rm -rvf ${calldir}
+    rm -rvf ${parent}/${calldir}
   }
 
   runtime {
