@@ -49,11 +49,11 @@ export LSF_DOCKER_ENTRYPOINT=/bin/sh
 
 # create tmp dir
 export TMP_DIR
-#[ ! -d $TMP_DIR ] && mkdir $TMP_DIR
+[ ! -d $TMP_DIR ] && mkdir $TMP_DIR
 echo "Temp Directory: $TMP_DIR"
 # create out dir
 export OUT_DIR
-#[ ! -d $OUT_DIR ] && mkdir $OUT_DIR
+[ ! -d $OUT_DIR ] && mkdir $OUT_DIR
 echo "Out Directory: $OUT_DIR"
 # you may need to adjust your cores (-n) and memory (-M and mem) depending on your data set
 # 1 GPU server should have 64GB CPU RAM, at least 16 CPU threads
@@ -66,7 +66,7 @@ echo "Out Directory: $OUT_DIR"
 # the last is where you put in any of the pubrun commands like fq2bam, bqsr, applybqsr, haplotypecaller
 # see the parabricks docs here: https://www.nvidia.com/en-us/docs/parabricks/
 
-bsub -oo "$OUT_DIR"/out.txt -eo "$OUT_DIR"/err.txt -G compute-jin810 -n 32 -M 196GB -R 'rusage[mem=196GB] span[hosts=1]' \
+bsub -G compute-jin810 -n 32 -M 196GB -R 'rusage[mem=196GB] span[hosts=1]' \
 -Is -q general-interactive -gpu "num=4:gmodel=TeslaV100_SXM2_32GB" -a 'docker(registry.gsc.wustl.edu/cpohl/parabricks:v3.0.0)' \
 /parabricks/run_pipeline.py germline \
 --ref /storage1/fs1/bga/Active/gmsroot/gc2560/core/model_data/2887491634/build21f22873ebe0486c8e6f69c15435aa96/all_sequences.fa \
