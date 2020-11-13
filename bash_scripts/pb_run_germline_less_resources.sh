@@ -2,8 +2,8 @@
 #Positional Argument Input. sample dir, tmp_dir, out_dir.
 project_name=$1
 IN_DIR=/storage1/fs1/jin810/Active/pb_runs/"$project_name"
-OUT_DIR=/storage1/fs1/jin810/Active/pb_runs/"$project_name"/pb_germline_output
-TMP_DIR=/scratch1/fs1/jin810/pb_runs_scratch/"$project_name"
+OUT_DIR=/storage1/fs1/jin810/Active/pb_runs/"$project_name"/pb_germline_output/less_res
+TMP_DIR=/scratch1/fs1/jin810/pb_runs_scratch/"$project_name"/less_res
 samples=$( ls -d "$IN_DIR"/samples/*)
 
 #Files must be in specific format. $Sample_name/*.fastq.gz (2 files only)
@@ -66,7 +66,7 @@ echo "Out Directory: $OUT_DIR"
 # the last is where you put in any of the pubrun commands like fq2bam, bqsr, applybqsr, haplotypecaller
 # see the parabricks docs here: https://www.nvidia.com/en-us/docs/parabricks/
 
-bsub -oo "$OUT_DIR"/out.txt -eo "$OUT_DIR"/err.txt -G compute-jin810 -n 32 -M 196GB -R 'rusage[mem=196GB] span[hosts=1]' \
+bsub -oo "$OUT_DIR"/less_res_out.txt -eo "$OUT_DIR"/less_res_err.txt -G compute-jin810 -n 16 -M 64GB -R 'rusage[mem=64GB] span[hosts=1]' \
 -q general -gpu "num=4:gmodel=TeslaV100_SXM2_32GB" -a 'docker(registry.gsc.wustl.edu/cpohl/parabricks:v3.5.0_beta2)' \
 /parabricks/run_pipeline.py germline \
 --ref /storage1/fs1/bga/Active/gmsroot/gc2560/core/model_data/2887491634/build21f22873ebe0486c8e6f69c15435aa96/all_sequences.fa \
@@ -76,7 +76,7 @@ $input_str \
 --knownSites /storage1/fs1/bga/Active/gmsroot/gc2560/core/build_merged_alignments/detect-variants--linus2112.gsc.wustl.edu-jwalker-20211-26b393cc7ab04120ac68cc2cbd4a15df/indels.hq.vcf.gz \
 --knownSites /storage1/fs1/bga/Active/gmsroot/gc2709/info/production_reference_GRCh38DH/accessory_vcf/omni25-ld-pruned-20000-2000-0.5-annotated.wchr.sites_only.b38.autosomes_only.vcf.gz \
 --out-bam "$OUT_DIR"\output.bam \
---num-gpus 4 --x3 --tmp-dir $TMP_DIR \
+--num-gpus 1 --x3 --tmp-dir $TMP_DIR \
 --bwa-options="-Y" \
 --out-variants "$OUT_DIR"\output.vcf \
 --out-recal-file "$OUT_DIR"\report.txt \
