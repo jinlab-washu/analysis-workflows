@@ -4,7 +4,7 @@ rules:
   'library->is_rna': 0
 models:
   'Genome::Model::CwlPipeline':
-    processing_profile_id: '321464cb97774ea9bdd8b33e232f170e'
+    processing_profile_id: 'a01a71f422af40508df4c52881cd9306'
     input_data:
         reference_build: '21f22873ebe0486c8e6f69c15435aa96'
         dbsnp_vcf: '/gscmnt/gc2560/core/build_merged_alignments/detect-variants--linus2112.gsc.wustl.edu-jwalker-19443-e48c595a620a432c93e8dd29e4af64f2/snvs.hq.vcf.gz'
@@ -23,6 +23,8 @@ models:
         vep_ensembl_assembly: 'GRCh38'
         region_of_interest_set_name: 'xGen Lockdown Exome Panel v1 capture set'
         idt_bed: '/gscmnt/gc2698/jin810/references/hg38_idt_target_regions.bed'
+        intervals_dir: '/gscmnt/gc2698/jin810/references/split_regions/split_regions.txt'
+        bqsr_interval_list: '/gscmnt/gc2698/jin810/references/jin_lab_w_nextera.bed'
     instrument_data_properties:
         subject: sample
         input_data:

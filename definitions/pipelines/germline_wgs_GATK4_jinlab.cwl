@@ -1,9 +1,9 @@
-   
+  
 #!/usr/bin/env cwl-runner
 
 cwlVersion: v1.0
 class: Workflow
-label: "exome alignment and germline variant detection"
+label: "exome alignment and germline variant detection with WGS bamMetrics"
 requirements:
     - class: SchemaDefRequirement
       types:
@@ -30,10 +30,8 @@ inputs:
         secondaryFiles: [.tbi]
     idt_bed:
         type: File
-    bqsr_interval_list:
-        type:
-            - string
-            - File
+    bqsr_intervals:
+        type: string[]?
     bait_intervals:
         type: File
     target_intervals:
@@ -53,16 +51,14 @@ inputs:
         type:
             type: enum
             symbols: ['NONE', 'BP_RESOLUTION', 'GVCF']
-    #gvcf_gq_bands:
-        #type: string[]
+    gvcf_gq_bands:
+        type: string[]
     intervals:
         type:
             type: array
             items:
                 type: array
-                items: string 
-    #intervals_dir:
-        #type: File
+                items: string
     vep_cache_dir:
         type:
             - string
@@ -96,6 +92,8 @@ inputs:
          type: string[]?
     vep_to_table_fields:
          type: string[]?
+    whole_genome_flag:
+         type: boolean?
 outputs:
     cram:
         type: File
@@ -150,36 +148,15 @@ outputs:
         outputSource: exome_merge_gvcf/merged_gvcf
         secondaryFiles: [.tbi]
 steps:
-    #get_cust_exome_intervals:
-        #in:
-            #intervals_dir: intervals_dir
-        #out:
-            #[interval_files]
-        #run:
-            #class: ExpressionTool
-            #requirements:
-                #- class: InlineJavascriptRequirement
-            #inputs:
-                #intervals_dir:
-                    #type: File
-                    #inputBinding:
-                        #loadContents: true
-            #outputs:
-                #interval_files:
-                    #type: string[]
-
-            #expression: |
-                #${var my_files = inputs.intervals_dir.contents.trim().split("\n");
-                  #return {interval_files: my_files};}
     alignment_and_qc:
-        run: alignment_exome_GATK4_cust_int.cwl
+        run: alignment_exome_GATK4.cwl
         in:
             reference: reference
             sequence: sequence
             mills: mills
             known_indels: known_indels
             dbsnp_vcf: dbsnp_vcf
-            bqsr_intervals: bqsr_interval_list
+            bqsr_intervals: bqsr_intervals
             bait_intervals: bait_intervals
             target_intervals: target_intervals
             per_base_intervals: per_base_intervals
@@ -218,12 +195,12 @@ steps:
                             }
                         }
     exome_merge_gvcf:
-        run: ../subworkflows/germline_haplotype_gvcf_merge_GATK4_cust_int.cwl
+        run: ../subworkflows/germline_haplotype_gvcf_merge_GATK4.cwl
         in:
             reference: reference
             bam: alignment_and_qc/bam
             emit_reference_confidence: emit_reference_confidence
-            #gvcf_gq_bands: gvcf_gq_bands
+            gvcf_gq_bands: gvcf_gq_bands
             intervals: intervals
             contamination_fraction: extract_freemix/freemix_score
             vep_cache_dir: vep_cache_dir
@@ -240,10 +217,11 @@ steps:
             variants_to_table_genotype_fields: variants_to_table_genotype_fields
         out:
             [gvcf, merged_gvcf] #final_vcf, filtered_vcf, vep_summary, final_tsv, filtered_tsv]
+    
     bamMetrics:
-        run: ../tools/knight_bamMetrics.cwl
+        run: ../tools/knight_bamMetrics_WGS.cwl
         in:
-            bed: idt_bed
+            whole_genome_flag: whole_genome_flag
             reference: reference
             cram: bam_to_cram/cram
         out:

@@ -2,18 +2,19 @@
 
 cwlVersion: v1.0
 class: CommandLineTool
-label: "Knight lab bamMetrics"
-baseCommand: ["/gscmnt/gc2698/jin810/programs/bamMetrics_docker"]
+label: "Knight lab bamMetrics - WGS"
+baseCommand: ["/opt/bamMetrics"]
 requirements:
     - class: DockerRequirement
-      dockerPull: "mgibio/samtools-cwl:1.0.0"
+      dockerPull: "sam16711/bam_metrics:v1"
     - class: ResourceRequirement
       ramMin: 10000
 inputs:
-    bed:
-        type: File
+    whole_genome_flag:
+        type: boolean?
+        default: true
         inputBinding:
-            prefix: "-b"
+            prefix: "-g"
             position: 1
     reference:
         type:
