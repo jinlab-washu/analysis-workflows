@@ -1,33 +1,15 @@
 #!/bin/bash
-#Positional Argument Input. sample dir, tmp_dir, out_dir.
+#Positional Argument Input. project_name 
 project_name=$1
-IN_DIR=/storage1/fs1/jin810/Active/pb_runs/"$project_name"
-OUT_DIR=/scratch1/fs1/jin810/pb_runs_scratch/"$project_name"/fq2bam_test/full_mem
-TMP_DIR=/scratch1/fs1/jin810/pb_runs_scratch/"$project_name"/fq2bam_test/full_mem/temp
-samples=$( ls -d "$IN_DIR"/samples/*)
+IN_DIR=/storage1/fs1/jin810/Active/pb_runs/"$project_name"/fq2bam_test/less_res/successful_12-14-20/
+OUT_DIR=/storage1/fs1/jin810/Active/pb_runs/"$project_name"/haplotypecaller/full_mem/
+TMP_DIR=/scratch1/fs1/jin810/pb_runs_scratch/"$project_name"/haplotypecaller/full_mem/
 
-#Files must be in specific format. $Sample_name/*.fastq.gz (2 files only)
-#Gather Fastq Files for Run
-input_str=""
-count=0
-for s in $samples
-do
-    echo Samples: "$samples"
-    echo Sample: "$s"
-    fq=( $( ls -d "$s"/*.fastq.gz ))
-    #echo "${#fq[*]}"
-    fq1=${fq[0]}
-    fq2=${fq[1]}
-
-    #Check for pairs of fastq samples. If more than 2 exit.
-    if [ "${#fq[*]}" -ne 2 ];then
-        echo Greater or less than 2 fastq found for "$s"!
-        exit
-    fi
-
-    input_str+="--in-fq $fq1 $fq2"
-    echo "$input_str"
-done
+#Check for project name. If none supplied, exit.
+if [ -z $project_name ]; then
+        echo No project name entered! You must provide a project name after the script. E.g. ./pb_fq2gvcf.sh NA12878
+        exit 1
+fi
 
 #use the scratch file system for temp space
 export SCRATCH1=/scratch1/fs1/jin810
@@ -67,16 +49,15 @@ echo "Out Directory: $OUT_DIR"
 # see the parabricks docs here: https://www.nvidia.com/en-us/docs/parabricks/
 
 bsub -oo "$OUT_DIR"/out.txt -eo "$OUT_DIR"/err.txt -G compute-jin810 -n 32 -M 196GB -R 'rusage[mem=196GB] span[hosts=1]' \
--q general -gpu "num=4:gmodel=TeslaV100_SXM2_32GB:j_exclusive=yes" -a 'docker(us.gcr.io/ris-appeng-shared-dev/parabricks:v3.0.0)' \
-/parabricks/run_pipeline.py fq2bam \
+-q general -gpu "num=4:gmodel=TeslaV100_SXM2_32GB:j_exclusive=yes" -a 'docker(registry.gsc.wustl.edu/cpohl/parabricks:v3.0.0.6)' \
+/parabricks/run_pipeline.py haplotypecaller \
 --ref /storage1/fs1/bga/Active/gmsroot/gc2560/core/model_data/2887491634/build21f22873ebe0486c8e6f69c15435aa96/all_sequences.fa \
-$input_str \
---knownSites /storage1/fs1/bga/Active/gmsroot/gc2560/core/build_merged_alignments/detect-variants--linus2112.gsc.wustl.edu-jwalker-19443-e48c595a620a432c93e8dd29e4af64f2/snvs.hq.vcf.gz \
---knownSites /storage1/fs1/bga/Active/gmsroot/gc2560/core/build_merged_alignments/detect-variants--linus2112.gsc.wustl.edu-jwalker-20267-00cb8ff552914c17ad66d86031e10d30/indels.hq.vcf.gz \
---knownSites /storage1/fs1/bga/Active/gmsroot/gc2560/core/build_merged_alignments/detect-variants--linus2112.gsc.wustl.edu-jwalker-20211-26b393cc7ab04120ac68cc2cbd4a15df/indels.hq.vcf.gz \
---out-bam "$OUT_DIR"/mark_dups_output.bam \
---num-gpus 4 --x3 \
---out-recal-file "$OUT_DIR"/bqsr_report.txt \
---out-duplicate-metrics "$OUT_DIR"/dup_metrics.txt \
+--in-bam $IN_DIR/mark_dups_output.bam \
+--in-recal-file $IN_DIR/report.txt \
+--out-variants $OUT_DIR/result.g.vcf.gz \
+--gvcf \
 --tmp-dir $TMP_DIR \
---bwa-options="-Y"
+--static-quantized-quals 10 \
+--static-quantized-quals 20 \
+--static-quantized-quals 30 \
+--num-gpus 4

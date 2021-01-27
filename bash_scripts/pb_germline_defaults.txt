@@ -13,4 +13,4 @@ $fq \
 --static-quantized-quals 10 \
 --static-quantized-quals 20 \
 --static-quantized-quals 30 \
---num-gpus 6 \
+--num-gpus 4 \
