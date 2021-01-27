@@ -37,7 +37,7 @@ do
 done
 
 #use the scratch file system for temp space
-export SCRATCH1=/scratch1/fs1/jin810
+export SCRATCH1=/scratch1/fs1/jin810/pb_runs_scratch
 
 #use your Active storage for input and output data
 export STORAGE1=/storage1/fs1/jin810/Active
@@ -49,7 +49,7 @@ export LSF_DOCKER_VOLUMES="/scratch1/fs1/ris/application/parabricks:/INSTALL $BG
 export LSF_DOCKER_NETWORK=host
 
 # use the debug flag when trying to figure out why your job failed to launch on the cluster
-#export LSF_DOCKER_RUN_LOGLEVEL=DEBUG
+export LSF_DOCKER_RUN_LOGLEVEL=DEBUG
 
 # use the entry point because the parabricks container has other entrypoints but our cluster requires /bin/sh
 export LSF_DOCKER_ENTRYPOINT=/bin/sh
@@ -62,6 +62,11 @@ echo "Temp Directory: $TMP_DIR"
 export OUT_DIR
 [ ! -d $OUT_DIR ] && mkdir -p $OUT_DIR
 echo "Out Directory: $OUT_DIR"
+
+export SCRATCH1
+[ ! -d $SCRATCH1 ] && mkdir $SCRATCH1
+echo "Scratch Directory: $SCRATCH1"
+
 # create cromwell-executions dir
 #export CROM_DIR
 #[ ! -d $CROM_DIR ] && mkdir -p $CROM_DIR

@@ -63,7 +63,7 @@ workflow pb_fq2gvcf {
 			--bwa-options="-Y"
 		}
 		runtime {
-			docker: "us.gcr.io/ris-appeng-shared-dev/parabricks:v3.2.0"
+			docker: "us.gcr.io/ris-appeng-shared-dev/parabricks:v3.0.0"
 			gpus: 2
 			cpus: 24
 			requested_memory: "100GB"
