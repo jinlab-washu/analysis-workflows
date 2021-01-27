@@ -50,23 +50,23 @@ workflow pb_fq2gvcf {
 		String outdir
 		Array[String] known_indels_sites_VCFs
 		command {
-			 fq2bam \
+			/parabricks/run_pipeline.py fq2bam \
 			--ref ${ref} \
 			--knownSites ${sep=" --knownSites " known_indels_sites_VCFs} \
-			--knownSites ${dbsnp_vcf} \ 
+			--knownSites ${dbsnp_vcf} \
 			--in-fq ${infq} \
 			--out-bam ${outdir}/mark_dups_output.bam \
-			--num-gpus 4 --x3 \
+			--num-gpus 2 --x3 \
 			--out-recal-file ${outdir}/bqsr_report.txt \
 			--out-duplicate-metrics ${outdir}/dup_metrics.txt \
 			--tmp-dir ${tmpdir} \
 			--bwa-options="-Y"
 		}
 		runtime {
-			docker: "registry.gsc.wustl.edu/cpohl/parabricks:v3.0.0.6"
-			gpus: 4
-			cpus: 32
-			requested_memory: "196GB"
+			docker: "us.gcr.io/ris-appeng-shared-dev/parabricks:v3.2.0"
+			gpus: 2
+			cpus: 24
+			requested_memory: "100GB"
 		}
 		output {
 			File markdupbam = "${outdir}/mark_dups_output.bam"

@@ -1,9 +1,10 @@
 #!/bin/bash
 #Positional Argument Input. sample dir, tmp_dir, out_dir.
 project_name=$1
-IN_DIR=/storage1/fs1/jin810/Active/pb_runs/"$project_name"
-OUT_DIR=/storage1/fs1/jin810/Active/pb_runs/NA12878/crom_run/pb_fq2bam
-TMP_DIR=/scratch1/fs1/jin810/pb_runs_scratch/NA12878/crom_run/pb_fq2bam
+IN_DIR=/storage1/fs1/jin810/Active/pb_runs/NA12878
+OUT_DIR=/storage1/fs1/jin810/Active/pb_runs/NA12878/pb_fq2bam/crom_run
+TMP_DIR=/storage1/fs1/jin810/Active/pb_runs/NA12878/pb_fq2bam/crom_run/logs
+#CROM_DIR=/storage1/fs1/jin810/Active/pb_runs/"$project_name"/pb_fq2bam/crom_run/cromwell-executions
 
 if [ -z $project_name ]; then
 	echo No project name entered! You must provide a project name after the script. E.g. ./pb_fq2gvcf.sh NA12878
@@ -61,13 +62,18 @@ echo "Temp Directory: $TMP_DIR"
 export OUT_DIR
 [ ! -d $OUT_DIR ] && mkdir -p $OUT_DIR
 echo "Out Directory: $OUT_DIR"
+# create cromwell-executions dir
+#export CROM_DIR
+#[ ! -d $CROM_DIR ] && mkdir -p $CROM_DIR
+#echo "CROM Directory: $CROM_DIR"
 
 #Main Script
-bsub -q general -G compute-jin810 -R "select[mem>4GB] span[hosts=1] rusage[mem=4GB]" -a "docker(registry.gsc.wustl.edu/apipe-builder/genome_perl_environment:compute1-3)" \
--oo /storage1/fs1/jin810/Active/pb_runs/NA12878/crom_run/pb_fq2bam/bsub.out \
--eo /storage1/fs1/jin810/Active/pb_runs/NA12878/crom_run/pb_fq2bam/bsub.err \
--J crom_pbfq2bam \
+bsub -q general -G compute-jin810 -R "select[mem>4GB] span[hosts=1] rusage[mem=4GB]" -a "docker(registry.gsc.wustl.edu/apipe-builder/genome_perl_environment:compute1-8)" \
+-oo "$OUT_DIR"/bsub.out \
+-eo "$OUT_DIR"/bsub.err \
+-J "$project_name"_run \
 /usr/bin/java -Dsystem.input-read-limits.lines=18000000 \
 -Dconfig.file="/storage1/fs1/jin810/Active/analysis-workflows/cromwell_wdl/pb_fq2gvcf_crom_config.conf" \
--jar /opt/cromwell.jar run /storage1/fs1/jin810/Active/analysis-workflows/cromwell_wdl/pb_fq2gvcf.wdl \
--i /storage1/fs1/jin810/Active/analysis-workflows/cromwell_wdl/pb_fq2gvcf.json
+-Dsystem.job-shell=/bin/sh \
+-jar "$STORAGE1"/cromwell/cromwell-54.jar run -i /storage1/fs1/jin810/Active/analysis-workflows/cromwell_wdl/pb_fq2gvcf.json \
+/storage1/fs1/jin810/Active/analysis-workflows/cromwell_wdl/pb_fq2gvcf.wdl
